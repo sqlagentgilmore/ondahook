@@ -1,6 +1,7 @@
 use std::hint::spin_loop;
 use std::process::Stdio;
 use std::time::Duration;
+use std::env;
 
 pub fn commandment(args: &[&str]) -> std::io::Result<()> {
     if args.is_empty() {
@@ -39,32 +40,28 @@ pub fn commandment(args: &[&str]) -> std::io::Result<()> {
 }
 
 fn main() {
-    let mut args = std::env::args_os();
-    if let Some(val) = args.nth(0) {
-        
-        match commandment(&["cd", val.to_str().expect("Invalid UTF-8")]) {
-            Ok(_) => {
-                loop {
-                    spin_loop();
-                    match commandment(&["git", "pull"]) {
-                        Ok(_) => {
-                           
-                        },
-                        Err(e) => {
-                            println!("Error updating: {}", e);
-                        }
-                    };
-                    std::thread::sleep(Duration::new(5, 0));
+    let mut args = std::env::args();
+    args.next(); // Skip the program name
 
-                }
-            },
-            Err(e) => {
-                panic!("Error changing directory: {}", e);
-            }
+    if let Some(dir_path) = args.next() {
+        
+        if let Err(e) = env::set_current_dir(&dir_path) {
+            panic!("Error changing directory: {}", e);
         }
-    }
-    
-    
-        
 
+        loop {
+            spin_loop();
+            match commandment(&["git", "pull"]) {
+                Ok(_) => {
+                    // Successfully pulled
+                },
+                Err(e) => {
+                    println!("Error updating: {}", e);
+                }
+            };
+            std::thread::sleep(Duration::new(5, 0));
+        }
+    } else {
+        panic!("No directory path provided");
+    }
 }
